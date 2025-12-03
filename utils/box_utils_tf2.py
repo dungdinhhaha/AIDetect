@@ -16,3 +16,7 @@ def iou(boxes1, boxes2):
 def nms(boxes, scores, max_output=100, iou_thresh=0.5):
     idx = tf.image.non_max_suppression(boxes, scores, max_output, iou_threshold=iou_thresh)
     return tf.gather(boxes, idx), tf.gather(scores, idx)
+
+
+# Alias for backward compatibility
+compute_iou = iou
