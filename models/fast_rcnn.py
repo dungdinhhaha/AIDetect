@@ -17,3 +17,7 @@ class FastRCNNHead(tf.keras.Model):
         cls = self.cls_logits(x)
         bbox = self.bbox_deltas(x)
         return cls, bbox
+
+
+# Alias for backward compatibility
+FastRCNN = FastRCNNHead
