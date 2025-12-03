@@ -44,12 +44,38 @@ def parse_example(example_proto: tf.Tensor) -> Tuple[tf.Tensor, dict]:
 def preprocess(image: tf.Tensor, target: dict, image_size: Tuple[int, int]) -> Tuple[tf.Tensor, dict]:
     image = tf.image.convert_image_dtype(image, tf.float32)
     image = tf.image.resize(image, image_size)
+    # Keep boxes and labels as-is (will be padded during batching)
     return image, target
 
 
-def build_dataset(tfrecord_paths, image_size=(640, 640), batch_size=2, shuffle=1000):
+def pad_boxes_and_labels(image, target, max_boxes=100):
+    """Pad boxes and labels to fixed size for batching"""
+    boxes = target['boxes']
+    labels = target['labels']
+    
+    num_boxes = tf.shape(boxes)[0]
+    
+    # Pad boxes to max_boxes
+    boxes_padded = tf.pad(boxes, [[0, max_boxes - num_boxes], [0, 0]], constant_values=0.0)
+    boxes_padded = boxes_padded[:max_boxes]
+    
+    # Pad labels to max_boxes
+    labels_padded = tf.pad(labels, [[0, max_boxes - num_boxes]], constant_values=0)
+    labels_padded = labels_padded[:max_boxes]
+    
+    # Create valid mask (1 for real boxes, 0 for padding)
+    valid_mask = tf.concat([
+        tf.ones([num_boxes], dtype=tf.float32),
+        tf.zeros([max_boxes - num_boxes], dtype=tf.float32)
+    ], axis=0)[:max_boxes]
+    
+    return image, {'boxes': boxes_padded, 'labels': labels_padded, 'valid': valid_mask}
+
+
+def build_dataset(tfrecord_paths, image_size=(640, 640), batch_size=2, shuffle=1000, max_boxes=100):
     ds = tf.data.TFRecordDataset(tfrecord_paths, num_parallel_reads=AUTOTUNE)
     ds = ds.map(parse_example, num_parallel_calls=AUTOTUNE)
     ds = ds.map(lambda img, tgt: preprocess(img, tgt, image_size), num_parallel_calls=AUTOTUNE)
+    ds = ds.map(lambda img, tgt: pad_boxes_and_labels(img, tgt, max_boxes), num_parallel_calls=AUTOTUNE)
     ds = ds.shuffle(shuffle).batch(batch_size).prefetch(AUTOTUNE)
     return ds
