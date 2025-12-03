@@ -1,6 +1,10 @@
 class ConfigV2:
     # Paths (Colab defaults)
-    DATA_DIR = "/content/data/tct"
+    # Option 1: Data trong Drive (nếu upload thủ công)
+    DATA_DIR = "/content/drive/MyDrive/content/data/tct"
+    # Option 2: Data copy sang local Colab (uncomment nếu dùng)
+    # DATA_DIR = "/content/data/tct"
+    
     MODEL_DIR = "/content/drive/MyDrive/comparison_detector_models_v2"
     LOG_DIR = f"{MODEL_DIR}/logs"
     CHECKPOINT_DIR = f"{MODEL_DIR}/checkpoints"
