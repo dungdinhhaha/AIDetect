@@ -1,30 +1,37 @@
 import tensorflow as tf
 from typing import Tuple
+import numpy as np
 
 AUTOTUNE = tf.data.AUTOTUNE
 
 
 def parse_example(example_proto: tf.Tensor) -> Tuple[tf.Tensor, dict]:
-    # Placeholder TFRecord parser schema; adjust to your actual TFRecord
+    # Updated parser for your TFRecord format
     features = {
-        'image/encoded': tf.io.FixedLenFeature([], tf.string),
-        'image/height': tf.io.FixedLenFeature([], tf.int64),
-        'image/width': tf.io.FixedLenFeature([], tf.int64),
-        'image/object/bbox/xmin': tf.io.VarLenFeature(tf.float32),
-        'image/object/bbox/xmax': tf.io.VarLenFeature(tf.float32),
-        'image/object/bbox/ymin': tf.io.VarLenFeature(tf.float32),
-        'image/object/bbox/ymax': tf.io.VarLenFeature(tf.float32),
-        'image/object/class/label': tf.io.VarLenFeature(tf.int64),
+        'img': tf.io.FixedLenFeature([], tf.string),
+        'img_height': tf.io.FixedLenFeature([], tf.int64),
+        'img_width': tf.io.FixedLenFeature([], tf.int64),
+        'gtboxes_and_label': tf.io.FixedLenFeature([], tf.string),
+        'img_name': tf.io.FixedLenFeature([], tf.string),
     }
     parsed = tf.io.parse_single_example(example_proto, features)
-    image = tf.image.decode_jpeg(parsed['image/encoded'], channels=3)
-    # Convert sparse to dense
-    labels = tf.sparse.to_dense(parsed['image/object/class/label'])
-    xmin = tf.sparse.to_dense(parsed['image/object/bbox/xmin'])
-    xmax = tf.sparse.to_dense(parsed['image/object/bbox/xmax'])
-    ymin = tf.sparse.to_dense(parsed['image/object/bbox/ymin'])
-    ymax = tf.sparse.to_dense(parsed['image/object/bbox/ymax'])
-    boxes = tf.stack([ymin, xmin, ymax, xmax], axis=-1)
+    
+    # Decode image
+    image = tf.image.decode_jpeg(parsed['img'], channels=3)
+    
+    # Decode boxes and labels (stored as serialized bytes)
+    # Format: [x1, y1, x2, y2, label, x1, y1, x2, y2, label, ...]
+    gtboxes_and_label = tf.io.decode_raw(parsed['gtboxes_and_label'], tf.int32)
+    gtboxes_and_label = tf.reshape(gtboxes_and_label, [-1, 5])  # Nx5: [x1, y1, x2, y2, label]
+    
+    # Extract boxes [x1, y1, x2, y2] and convert to [y1, x1, y2, x2] format
+    boxes = tf.cast(gtboxes_and_label[:, :4], tf.float32)
+    # Swap from [x1, y1, x2, y2] to [y1, x1, y2, x2]
+    boxes = tf.stack([boxes[:, 1], boxes[:, 0], boxes[:, 3], boxes[:, 2]], axis=-1)
+    
+    # Extract labels
+    labels = gtboxes_and_label[:, 4]
+    
     target = {'boxes': boxes, 'labels': labels}
     return image, target
 
