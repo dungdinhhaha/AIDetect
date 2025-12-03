@@ -35,8 +35,20 @@ def main():
         ds = tf.data.Dataset.from_tensor_slices((dummy_images, dummy_labels)).batch(cfg.BATCH_SIZE)
     else:
         ds = build_dataset(tfrecord_paths, image_size=cfg.IMAGE_SIZE, batch_size=cfg.BATCH_SIZE)
-        # Map targets to labels placeholder (for the simple head smoke)
-        ds = ds.map(lambda img, tgt: (img, tf.zeros((), dtype=tf.int32)))
+        # Map targets to labels - extract first label from each image as dummy classification target
+        def extract_label(img, tgt):
+            # Use first valid label as classification target (placeholder for smoke test)
+            labels = tgt['labels']
+            valid = tgt['valid']
+            # Get first valid label, or 0 if no valid labels
+            first_label = tf.cond(
+                tf.reduce_sum(valid) > 0,
+                lambda: labels[0],
+                lambda: tf.constant(0, dtype=tf.int32)
+            )
+            return img, first_label
+        
+        ds = ds.map(extract_label)
 
     ckpt_cb = tf.keras.callbacks.ModelCheckpoint(
         filepath=os.path.join(cfg.CHECKPOINT_DIR, 'ckpt_{epoch:02d}.weights.h5'),
