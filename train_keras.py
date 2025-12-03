@@ -37,16 +37,12 @@ def main():
         ds = build_dataset(tfrecord_paths, image_size=cfg.IMAGE_SIZE, batch_size=cfg.BATCH_SIZE)
         # Map targets to labels - extract first label from each image as dummy classification target
         def extract_label(img, tgt):
-            # Use first valid label as classification target (placeholder for smoke test)
-            labels = tgt['labels']
-            valid = tgt['valid']
-            # Get first valid label, or 0 if no valid labels
-            first_label = tf.cond(
-                tf.reduce_sum(valid) > 0,
-                lambda: labels[0],
-                lambda: tf.constant(0, dtype=tf.int32)
-            )
-            return img, first_label
+            # tgt is already batched: {boxes: [B, 100, 4], labels: [B, 100], valid: [B, 100]}
+            # Use first valid label from each image in batch
+            labels = tgt['labels']  # [B, 100]
+            # Just take first label of each image (simple placeholder for smoke test)
+            first_labels = labels[:, 0]  # [B]
+            return img, first_labels
         
         ds = ds.map(extract_label)
 
