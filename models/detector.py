@@ -6,8 +6,9 @@ from utils.box_utils_tf2 import nms
 
 class Detector(tf.keras.Model):
     def __init__(self, backbone_name='resnet50', backbone_weights='imagenet',
-                 channels=256, num_anchors=9, name='detector', **kwargs):
-        super().__init__(name=name, **kwargs)
+                 channels=256, num_anchors=9, num_classes=12, name='detector', **kwargs):
+        super().__init__(name=name)
+        self.num_classes = num_classes
         self.backbone = build_backbone(backbone_name, backbone_weights)
         self.fpn = FPN(channels)
         self.rpn = RPN(channels, num_anchors)
