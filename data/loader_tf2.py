@@ -16,9 +16,13 @@ def parse_example(example_proto: tf.Tensor) -> Tuple[tf.Tensor, dict]:
     }
     parsed = tf.io.parse_single_example(example_proto, features)
     
-    # Decode image - auto detect format (JPEG, PNG, BMP, GIF)
-    image = tf.io.decode_image(parsed['img'], channels=3, expand_animations=False)
-    image.set_shape([None, None, 3])  # Set shape explicitly
+    # Get dimensions
+    height = tf.cast(parsed['img_height'], tf.int32)
+    width = tf.cast(parsed['img_width'], tf.int32)
+    
+    # Decode image - it's stored as raw RGB bytes, not encoded JPEG/PNG
+    image = tf.io.decode_raw(parsed['img'], tf.uint8)
+    image = tf.reshape(image, [height, width, 3])
     
     # Decode boxes and labels (stored as serialized bytes)
     # Format: [x1, y1, x2, y2, label, x1, y1, x2, y2, label, ...]
