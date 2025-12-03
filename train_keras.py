@@ -46,7 +46,7 @@ def main():
     tb_cb = tf.keras.callbacks.TensorBoard(log_dir=cfg.LOG_DIR)
 
     model.fit(ds, epochs=1, steps_per_epoch=10, callbacks=[ckpt_cb, tb_cb])
-    model.save(os.path.join(cfg.MODEL_DIR, 'saved_model'))
+    model.save(os.path.join(cfg.MODEL_DIR, 'model.keras'))
     print('✓ Training smoke run completed')
 
 
