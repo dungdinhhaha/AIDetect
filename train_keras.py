@@ -39,7 +39,7 @@ def main():
         ds = ds.map(lambda img, tgt: (img, tf.zeros((), dtype=tf.int32)))
 
     ckpt_cb = tf.keras.callbacks.ModelCheckpoint(
-        filepath=os.path.join(cfg.CHECKPOINT_DIR, 'ckpt_{epoch:02d}'),
+        filepath=os.path.join(cfg.CHECKPOINT_DIR, 'ckpt_{epoch:02d}.weights.h5'),
         save_weights_only=True,
         save_freq='epoch'
     )
