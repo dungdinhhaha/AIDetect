@@ -20,3 +20,8 @@ class FPN(tf.keras.Model):
         p4 = self.smooth_p4(p4)
         p5 = self.smooth_p5(p5)
         return [p3, p4, p5]
+
+
+def build_fpn(channels=256):
+    """Build Feature Pyramid Network."""
+    return FPN(channels=channels)
