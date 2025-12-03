@@ -79,7 +79,19 @@ def build_feature_pyramid(share_net, config, reuse=tf.AUTO_REUSE):
                 p = feature_pyramid['P' + str(layer)]
                 p = slim.conv2d(p, 256, kernel_size=[3, 3], stride=1,
                                 padding='SAME', scope='build_P%d' % layer)
-                feature_pyramid['P' + str(layer)] = p
+                feature_pyramid['P' + str(layer)] = p                # 1. Tải và cài Python 3.6 (không dùng Python 3.11)
+                # 2. Tạo môi trường ảo với conda (khuyên dùng)
+                conda create -n tf1 python=3.6
+                conda activate tf1
+                
+                # 3. Cài TensorFlow 1.8.0 và các package
+                pip install tensorflow==1.8.0 numpy opencv-python
+                
+                # 4. Cài các package khác nếu cần
+                pip install -r requirements.txt
+                
+                # 5. Chạy thử dự án
+                python tools/train.py
             feature_pyramid['P6'] = slim.max_pool2d(feature_pyramid['P5'],
                                                     kernel_size=[2, 2], stride=2, scope='build_P6')
 
