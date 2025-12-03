@@ -1,0 +1,9 @@
+tensorflow-cpu==2.15.0; platform_system == "Windows"
+tensorflow>=2.15,<2.20; platform_system != "Windows"
+numpy<2.0; platform_system == "Windows"
+numpy>=2.0,<2.3; platform_system != "Windows"
+opencv-python-headless>=4.9.0.80
+scikit-image>=0.22.0
+scipy>=1.12.0
+matplotlib>=3.8.0
+tqdm>=4.66.0
