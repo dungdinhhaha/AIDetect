@@ -18,10 +18,9 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+import tf_slim as slim
 
 from nets import overfeat
-
-slim = tf.contrib.slim
 
 
 class OverFeatTest(tf.test.TestCase):

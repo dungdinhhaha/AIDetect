@@ -4,12 +4,15 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
 import sys
+import os
 
-sys.path.append('../')
+# Add project root to path
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
 import os
 import tensorflow as tf
 import numpy as np
-import tensorflow.contrib.slim as slim
+import tf_slim as slim
 from tensorflow.python.client import timeline
 
 from libs.networks.network_factory import get_network_byname
@@ -143,14 +146,23 @@ def model_fn(features,
 
     total_loss = regularization_losses + fast_rcnn_total_loss + rpn_total_loss
     global_step = slim.get_or_create_global_step()
-    tf.train.init_from_checkpoint(net_config.CHECKPOINT_DIR, {net_config.NET_NAME + "/": net_config.NET_NAME + "/"})
+    # Load pretrained checkpoint if available
+    if net_config.CHECKPOINT_DIR and os.path.exists(net_config.CHECKPOINT_DIR):
+        tf.train.init_from_checkpoint(net_config.CHECKPOINT_DIR, {net_config.NET_NAME + "/": net_config.NET_NAME + "/"})
+        print(f"Loaded checkpoint from: {net_config.CHECKPOINT_DIR}")
+    else:
+        print("Training from scratch (no checkpoint loaded)")
     with tf.variable_scope("optimizer"):
         lr = tf.train.piecewise_constant(global_step,
                                          boundaries=[np.int64(net_config.BOUNDARY[0]), np.int64(net_config.BOUNDARY[1])],
                                          values=[net_config.LEARNING_RATE, net_config.LEARNING_RATE / 10,
                                                  net_config.LEARNING_RATE / 100])
         optimizer = tf.train.MomentumOptimizer(lr, momentum=net_config.MOMENTUM)
-        optimizer = tf.contrib.estimator.TowerOptimizer(optimizer)
+        # Replace deprecated TowerOptimizer in TF2 environments; keep if available
+        try:
+            optimizer = tf.contrib.estimator.TowerOptimizer(optimizer)
+        except Exception:
+            pass
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies([tf.group(*update_ops)]):
             grads = optimizer.compute_gradients(total_loss)
@@ -203,8 +215,11 @@ if __name__ == "__main__":
                                               save_checkpoints_steps=net_config.SAVE_EVERY_N_STEP,
                                               session_config=session_config)
 
-    my_estimator = tf.estimator.Estimator(tf.contrib.estimator.replicate_model_fn(model_fn,
-                                                                             devices=net_config.GPU_GROUPS),
+    try:
+        replicate_fn = tf.contrib.estimator.replicate_model_fn(model_fn, devices=net_config.GPU_GROUPS)
+    except Exception:
+        replicate_fn = model_fn
+    my_estimator = tf.estimator.Estimator(replicate_fn,
                                       params={"net_config": net_config}, 
                                       config=estimator_config)
     my_estimator.train(input_fn=lambda: train_input_fn(net_config.DATA_DIR, net_config.BATCH_SIZE, net_config.EPOCH))

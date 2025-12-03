@@ -1,8 +1,8 @@
 
 import os
-import scipy
-import skimage.io
 import numpy as np
+import skimage.io
+import skimage.transform
 
 def load_reference_image():
     """
@@ -26,7 +26,8 @@ def load_reference_image():
     for r_label in range(1, 12):
         for r_image in random_choice_image[r_label]:
             image = skimage.io.imread(os.path.join(os.getcwd(), "images", str(r_label), r_image))
-            image = scipy.misc.imresize(image, (224, 224))
+            image = skimage.transform.resize(image, (224, 224), preserve_range=True, anti_aliasing=True)
+            image = image.astype(np.uint8)
             reference_image_list.append(image)
     reference_image_array = np.array(reference_image_list)
 

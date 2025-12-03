@@ -42,6 +42,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+import tf_slim as slim
 
 slim = tf.contrib.slim
 
@@ -121,7 +122,7 @@ def vgg_a(inputs,
       net = slim.conv2d(net, 4096, [7, 7], padding=fc_conv_padding, scope='fc6')
       net = slim.dropout(net, dropout_keep_prob, is_training=is_training,
                          scope='dropout6')
-      net = slim.conv2d(net, 4096, [1, 1], scope='fc7')
+        net = slim.conv2d(net, 4096, [1, 1], scope='fc7')
       # Convert end_points_collection into a end_point dict.
       end_points = slim.utils.convert_collection_to_dict(end_points_collection)
       if global_pool:
@@ -199,7 +200,7 @@ def vgg_16(inputs,
       net = slim.conv2d(net, 4096, [7, 7], padding=fc_conv_padding, scope='fc6')
       net = slim.dropout(net, dropout_keep_prob, is_training=is_training,
                          scope='dropout6')
-      net = slim.conv2d(net, 4096, [1, 1], scope='fc7')
+        net = slim.conv2d(net, 4096, [1, 1], scope='fc7')
       # Convert end_points_collection into a end_point dict.
       end_points = slim.utils.convert_collection_to_dict(end_points_collection)
       if global_pool:
@@ -278,7 +279,7 @@ def vgg_19(inputs,
       net = slim.conv2d(net, 4096, [7, 7], padding=fc_conv_padding, scope='fc6')
       net = slim.dropout(net, dropout_keep_prob, is_training=is_training,
                          scope='dropout6')
-      net = slim.conv2d(net, 4096, [1, 1], scope='fc7')
+        net = slim.conv2d(net, 4096, [1, 1], scope='fc7')
       # Convert end_points_collection into a end_point dict.
       end_points = slim.utils.convert_collection_to_dict(end_points_collection)
       if global_pool:

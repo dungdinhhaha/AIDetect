@@ -1,0 +1,41 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# TensorFlow/Training outputs
+logs/
+checkpoints/
+*.ckpt*
+*.pb
+*.pbtxt
+events.out.tfevents.*
+
+# Data files (too large for GitHub)
+tfdata/
+data/tct/
+*.tfrecord
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Model files
+*.h5
+*.hdf5
+saved_model/

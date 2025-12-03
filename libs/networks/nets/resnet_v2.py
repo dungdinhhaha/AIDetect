@@ -54,7 +54,7 @@ import tensorflow as tf
 
 from . import resnet_utils
 
-slim = tf.contrib.slim
+import tf_slim as slim
 resnet_arg_scope = resnet_utils.resnet_arg_scope
 
 
