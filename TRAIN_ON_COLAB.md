@@ -43,14 +43,30 @@ print("✓ Google Drive mounted")
 
 ## Bước 4: Chuẩn bị dữ liệu
 
+### Quan trọng: Add Data Folder vào My Drive trước
+
+**TFRecord Data Link**: https://drive.google.com/drive/folders/1b78oDihDz5ZvsqsLmPCAcbwd5dn08MxX
+
+**Cách thêm shortcut vào My Drive**:
+1. Mở link folder TFRecord ở trên
+2. Click chuột phải vào folder `tfdata` → "Add shortcut to Drive"
+3. Chọn "My Drive" → "Add"
+4. Folder sẽ xuất hiện trong My Drive của bạn
+
 ### Option A: Upload TFRecord từ Google Drive
 
 ```python
 # Cell 4A: Copy TFRecord từ Drive
 !mkdir -p /content/data/tct
 
-# THAY ĐỔI đường dẫn này theo vị trí data của bạn trên Drive
-!cp /content/drive/MyDrive/TCT_Data/*.tfrecord /content/data/tct/ 2>/dev/null || echo "No TFRecords found"
+# Copy TFRecord từ shared Google Drive folder
+# Link: https://drive.google.com/drive/folders/1b78oDihDz5ZvsqsLmPCAcbwd5dn08MxX
+# Cách 1: Nếu đã add shortcut vào My Drive
+!cp /content/drive/MyDrive/tfdata/tct/*.tfrecord /content/data/tct/ 2>/dev/null || echo "Trying alternative path..."
+
+# Cách 2: Nếu folder nằm ở Shared with me, cần add to My Drive trước
+# Hoặc mount Shared Drives và copy
+!cp -r /content/drive/Shareddrives/*/tfdata/tct/*.tfrecord /content/data/tct/ 2>/dev/null || echo "No TFRecords found"
 
 # Kiểm tra
 !ls -lh /content/data/tct/
@@ -350,8 +366,11 @@ from google.colab import drive
 drive.mount('/content/drive')
 
 !mkdir -p /content/data/tct
-# Uncomment dòng dưới nếu có data thật
-# !cp /content/drive/MyDrive/TCT_Data/*.tfrecord /content/data/tct/
+
+# Copy TFRecord từ Google Drive
+# Link data: https://drive.google.com/drive/folders/1b78oDihDz5ZvsqsLmPCAcbwd5dn08MxX
+!cp /content/drive/MyDrive/tfdata/tct/*.tfrecord /content/data/tct/ 2>/dev/null || echo "Data not found, check path"
+!ls -lh /content/data/tct/
 
 # Train
 !python train_keras.py
