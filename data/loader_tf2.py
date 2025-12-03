@@ -16,8 +16,9 @@ def parse_example(example_proto: tf.Tensor) -> Tuple[tf.Tensor, dict]:
     }
     parsed = tf.io.parse_single_example(example_proto, features)
     
-    # Decode image
-    image = tf.image.decode_jpeg(parsed['img'], channels=3)
+    # Decode image - auto detect format (JPEG, PNG, BMP, GIF)
+    image = tf.io.decode_image(parsed['img'], channels=3, expand_animations=False)
+    image.set_shape([None, None, 3])  # Set shape explicitly
     
     # Decode boxes and labels (stored as serialized bytes)
     # Format: [x1, y1, x2, y2, label, x1, y1, x2, y2, label, ...]
