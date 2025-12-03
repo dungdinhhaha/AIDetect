@@ -30,3 +30,7 @@ class Detector(tf.keras.Model):
         # NMS per image (batch=1 for simplicity)
         sel_boxes, sel_scores = nms(boxes, scores[0], max_output=100, iou_thresh=0.5)
         return sel_boxes, sel_scores
+
+
+# Alias for backward compatibility
+ComparisonDetector = Detector
