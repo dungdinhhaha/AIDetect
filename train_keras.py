@@ -33,8 +33,11 @@ def main():
         dummy_images = tf.random.uniform((cfg.BATCH_SIZE, cfg.IMAGE_SIZE[0], cfg.IMAGE_SIZE[1], 3))
         dummy_labels = tf.random.uniform((cfg.BATCH_SIZE,), minval=0, maxval=cfg.NUM_CLASSES, dtype=tf.int32)
         ds = tf.data.Dataset.from_tensor_slices((dummy_images, dummy_labels)).batch(cfg.BATCH_SIZE)
+        steps_per_epoch = 10  # Dummy dataset
     else:
-        ds = build_dataset(tfrecord_paths, image_size=cfg.IMAGE_SIZE, batch_size=cfg.BATCH_SIZE)
+        # Build dataset with .repeat() to avoid running out of data
+        ds = build_dataset(tfrecord_paths, image_size=cfg.IMAGE_SIZE, batch_size=cfg.BATCH_SIZE, shuffle=1000)
+        
         # Map targets to labels - extract first label from each image as dummy classification target
         def extract_label(img, tgt):
             # tgt is already batched: {boxes: [B, 100, 4], labels: [B, 100], valid: [B, 100]}
@@ -45,19 +48,68 @@ def main():
             return img, first_labels
         
         ds = ds.map(extract_label)
+        
+        # Calculate actual steps per epoch based on dataset size
+        # Estimate: 2.3GB / ~500KB per sample ≈ 4600 images per TFRecord
+        num_tfrecords = len(tfrecord_paths)
+        estimated_samples = num_tfrecords * 4600  # Rough estimate
+        steps_per_epoch = estimated_samples // cfg.BATCH_SIZE
+        
+        print(f'📊 Dataset info:')
+        print(f'  - TFRecord files: {num_tfrecords}')
+        print(f'  - Estimated samples: {estimated_samples}')
+        print(f'  - Batch size: {cfg.BATCH_SIZE}')
+        print(f'  - Steps per epoch: {steps_per_epoch}')
+        
+        # Add .repeat() to cycle through data indefinitely
+        ds = ds.repeat()
 
+    # Callbacks
     ckpt_cb = tf.keras.callbacks.ModelCheckpoint(
         filepath=os.path.join(cfg.CHECKPOINT_DIR, 'ckpt_{epoch:02d}.weights.h5'),
         save_weights_only=True,
         save_freq='epoch'
     )
-    tb_cb = tf.keras.callbacks.TensorBoard(log_dir=cfg.LOG_DIR)
+    
+    best_ckpt_cb = tf.keras.callbacks.ModelCheckpoint(
+        filepath=os.path.join(cfg.MODEL_DIR, 'best_model.h5'),
+        save_best_only=True,
+        save_weights_only=False,
+        monitor='loss',
+        mode='min',
+        verbose=1
+    )
+    
+    tb_cb = tf.keras.callbacks.TensorBoard(log_dir=cfg.LOG_DIR, histogram_freq=1)
+    
+    # Learning rate scheduler (optional but recommended)
+    reduce_lr_cb = tf.keras.callbacks.ReduceLROnPlateau(
+        monitor='loss',
+        factor=0.5,
+        patience=3,
+        min_lr=1e-7,
+        verbose=1
+    )
 
-    # For full training, increase epochs and steps_per_epoch
-    # epochs=20 for full training, steps_per_epoch=500 or adjust based on dataset size
-    model.fit(ds, epochs=cfg.EPOCHS, steps_per_epoch=500, callbacks=[ckpt_cb, tb_cb])
-    model.save(os.path.join(cfg.MODEL_DIR, 'model.keras'))
-    print('✓ Training smoke run completed')
+    print(f'\n🚀 Starting training...')
+    print(f'  Epochs: {cfg.EPOCHS}')
+    print(f'  Steps per epoch: {steps_per_epoch}')
+    print(f'  Total steps: {cfg.EPOCHS * steps_per_epoch}')
+    
+    history = model.fit(
+        ds, 
+        epochs=cfg.EPOCHS, 
+        steps_per_epoch=steps_per_epoch, 
+        callbacks=[ckpt_cb, best_ckpt_cb, tb_cb, reduce_lr_cb]
+    )
+    
+    # Save final model
+    final_model_path = os.path.join(cfg.MODEL_DIR, 'final_model.keras')
+    model.save(final_model_path)
+    print(f'\n✅ Training completed!')
+    print(f'  Final model saved to: {final_model_path}')
+    print(f'  Best model saved to: {os.path.join(cfg.MODEL_DIR, "best_model.h5")}')
+    print(f'  TensorBoard logs: {cfg.LOG_DIR}')
 
 
 if __name__ == '__main__':
