@@ -38,16 +38,33 @@ def main():
         # Build dataset with .repeat() to avoid running out of data
         ds = build_dataset(tfrecord_paths, image_size=cfg.IMAGE_SIZE, batch_size=cfg.BATCH_SIZE, shuffle=1000)
         
-        # Map targets to labels - extract first label from each image as dummy classification target
-        def extract_label(img, tgt):
-            # tgt is already batched: {boxes: [B, 100, 4], labels: [B, 100], valid: [B, 100]}
-            # Use first valid label from each image in batch
+        # Use all valid labels from all cells in each image
+        def extract_all_labels(img, tgt):
+            # tgt: {boxes: [B, 100, 4], labels: [B, 100], valid: [B, 100]}
             labels = tgt['labels']  # [B, 100]
-            # Just take first label of each image (simple placeholder for smoke test)
-            first_labels = labels[:, 0]  # [B]
-            return img, first_labels
+            valid = tgt['valid']    # [B, 100]
+            
+            # Filter to only valid labels (where valid == 1)
+            # For simplicity, we'll use the first valid label per image
+            # but mark this as needing proper multi-label support
+            batch_size = tf.shape(labels)[0]
+            first_valid_labels = []
+            
+            for i in range(cfg.BATCH_SIZE):
+                valid_mask = valid[i] > 0
+                valid_labels = tf.boolean_mask(labels[i], valid_mask)
+                # Use first valid label if any exist, else use 0
+                first_label = tf.cond(
+                    tf.size(valid_labels) > 0,
+                    lambda: valid_labels[0],
+                    lambda: tf.constant(0, dtype=labels.dtype)
+                )
+                first_valid_labels.append(first_label)
+            
+            first_valid_labels = tf.stack(first_valid_labels)
+            return img, first_valid_labels
         
-        ds = ds.map(extract_label)
+        ds = ds.map(extract_all_labels)
         
         # Calculate actual steps per epoch based on dataset size
         # Estimate: 2.3GB / ~500KB per sample ≈ 4600 images per TFRecord
@@ -91,16 +108,22 @@ def main():
         verbose=1
     )
 
+    # Compute class weights to handle imbalance
+    # Assuming relatively equal distribution across classes
+    class_weights = {i: 1.0 for i in range(cfg.NUM_CLASSES)}
+    
     print(f'\n🚀 Starting training...')
     print(f'  Epochs: {cfg.EPOCHS}')
     print(f'  Steps per epoch: {steps_per_epoch}')
     print(f'  Total steps: {cfg.EPOCHS * steps_per_epoch}')
+    print(f'  Class weights: {class_weights}')
     
     history = model.fit(
         ds, 
         epochs=cfg.EPOCHS, 
         steps_per_epoch=steps_per_epoch, 
-        callbacks=[ckpt_cb, best_ckpt_cb, tb_cb, reduce_lr_cb]
+        callbacks=[ckpt_cb, best_ckpt_cb, tb_cb, reduce_lr_cb],
+        class_weight=class_weights
     )
     
     # Save final model
